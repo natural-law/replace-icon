@@ -4,17 +4,7 @@ const Fs = require('fire-fs');
 const Path = require('path');
 const Electron = require('electron');
 
-function createProjNames () {
-    // TODO get the valid project names from Profile
-    return [
-        { value: 'jsb-default', text: 'jsb-default'},
-        { value: 'jsb-link', text: 'jsb-link'},
-        { value: 'jsb-binary', text: 'jsb-binary'}
-    ];
-}
-
 Editor.Panel.extend({
-
     style: `
     @import url('app://bower_components/fontawesome/css/font-awesome.min.css');
 
@@ -35,7 +25,6 @@ Editor.Panel.extend({
         justify-content: flex-end;
     }
     `,
-
 
     template: `
     <section>
@@ -131,11 +120,11 @@ Editor.Panel.extend({
     `,
 
     ready () {
-        new window.Vue({
+        var vm = this._vm = new window.Vue({
             el: this.shadowRoot,
             data: {
                 projPath: '',
-                projNames: createProjNames(),
+                projNames: [],
                 ios: false,
                 android: false,
                 mac: false,
@@ -230,9 +219,42 @@ Editor.Panel.extend({
 
                 _onReplaceClick : function(event) {
                     event.stopPropagation();
-                    Editor.log('replace clicked : ' + JSON.stringify(event));
                 }
             }
+        });
+
+        this._createProjNames();
+    },
+
+    _createProjNames : function() {
+        Editor.Profile.load('profile://local/builder.json', (err, profile) => {
+            if (err) {
+                Editor.error(`Get the build path failed. Please Build the project first.`);
+                return;
+            }
+
+            var buildPath = profile.data.buildPath;
+            var ret = [];
+            if (!Fs.existsSync(buildPath) || !Fs.isDirSync(buildPath)) {
+                Editor.error(`Build Path ${buildPath} is invalid. Please Build the project first.`);
+                return ret;
+            }
+
+            Fs.readdirSync(buildPath).forEach(function(file){
+                var curPath = Path.join(buildPath, file);
+                if (Fs.isDirSync(curPath) && file.indexOf('jsb-') === 0) {
+                    ret.push({
+                        value: curPath,
+                        text: file
+                    })
+                }
+            });
+
+            if (ret.length === 0) {
+                Editor.error('There is not any native project path. Please Build the project first.');
+            }
+
+            this._vm.projNames = ret;
         });
     }
 });
