@@ -4,6 +4,23 @@ const Fs = require('fire-fs');
 const Path = require('path');
 const Electron = require('electron');
 
+const MacIconPath = 'frameworks/runtime-src/proj.ios_mac/mac/Icon.icns';
+const WindowsIconPath = 'frameworks/runtime-src/proj.win32/res/game.ico';
+const IOSIconsDir = 'frameworks/runtime-src/proj.ios_mac/ios';
+const IOSIconNamePattern = 'Icon-([0-9]+).png';
+const AndroidProjectInfo = [
+    {
+        resDir: 'frameworks/runtime-src/proj.android/res',
+        iconFolderPattern: 'drawable.*',
+        iconName: 'icon.png'
+    },
+    {
+        resDir: 'frameworks/runtime-src/proj.android-studio/app/res',
+        iconFolderPattern: 'mipmap.*',
+        iconName: 'ic_launcher.png'
+    }
+];
+
 Editor.Panel.extend({
     style: `
     @import url('app://bower_components/fontawesome/css/font-awesome.min.css');
@@ -219,6 +236,67 @@ Editor.Panel.extend({
 
                 _onReplaceClick : function(event) {
                     event.stopPropagation();
+                    this.ios && this._replaceIOS();
+                    this.android && this._replaceAndroid();
+                    this.mac && this._replaceMac();
+                    this.windows && this._replaceWindows();
+                },
+
+                _replaceIOS: function() {
+                    Editor.log('replace ios icon');
+                },
+
+                _replaceAndroid: function() {
+                    Editor.log('replace android icon');
+                },
+
+                _replaceMac: function() {
+                    var ret = this._replaceByCopy('.icns', this.icnsPath, MacIconPath);
+                    if (!ret) {
+                        Editor.warn('Replace Mac icon failed');
+                    } else {
+                        Editor.log('Replace Mac icon succeed!');
+                    }
+                },
+
+                _replaceWindows: function() {
+                    var ret = this._replaceByCopy('.ico', this.icoPath, WindowsIconPath);
+                    if (!ret) {
+                        Editor.warn('Replace Windows icon failed');
+                    } else {
+                        Editor.log('Replace Windows icon succeed!');
+                    }
+                },
+
+                _replaceByCopy: function(ext, srcPath, dstPath) {
+                    if (!srcPath) {
+                        Editor.warn(`Please specify a ${ext} file.`);
+                        return false;
+                    }
+
+                    if (!Fs.existsSync(srcPath)) {
+                        Editor.warn(`${srcPath} is not existed.`);
+                        return false;
+                    }
+
+                    if (Path.extname(srcPath) !== ext) {
+                        Editor.warn(`${srcPath} is not a ${ext} file.`);
+                        return false;
+                    }
+
+                    var targetFile = Path.normalize(Path.join(this.projPath, dstPath));
+                    try {
+                        Fs.copySync(srcPath, targetFile);
+                    } catch (err) {
+                        Editor.warn(`Copy file ${srcPath} to ${targetFile} failed. message: ${err.stack}`);
+                        return false;
+                    }
+
+                    return true;
+                },
+
+                _resizePngToPath: function(srcPng, dstPng, resize) {
+
                 }
             }
         });
