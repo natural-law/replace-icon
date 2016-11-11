@@ -1,0 +1,21 @@
+{
+  "name": "replace-icons",
+  "version": "0.1.0",
+  "description": "Replace the icons of the native projects.",
+  "author": "lengaoxin@gmail.com",
+  "main": "main.js",
+  "main-menu": {
+    "i18n:MAIN_MENU.project.title/Replace Icons": {
+      "message": "replace-icons:open",
+      "accelerator": "CmdOrCtrl+Shift+i"
+    }
+  },
+  "panel": {
+    "main": "panel/panel.js",
+    "type": "dockable",
+    "width": 600,
+    "min-width": 500,
+    "height": 220,
+    "min-height": 220
+  }
+}
