@@ -3,11 +3,14 @@
 const Fs = require('fire-fs');
 const Path = require('path');
 const Electron = require('electron');
+const Sharp = require('sharp');
+const Async = require('async');
+const Globby = require('globby');
 
 const MacIconPath = 'frameworks/runtime-src/proj.ios_mac/mac/Icon.icns';
 const WindowsIconPath = 'frameworks/runtime-src/proj.win32/res/game.ico';
 const IOSIconsDir = 'frameworks/runtime-src/proj.ios_mac/ios';
-const IOSIconNamePattern = 'Icon-([0-9]+).png';
+const IOSIconNamePattern = 'Icon-*.png';
 const AndroidProjectInfo = [
     {
         resDir: 'frameworks/runtime-src/proj.android/res',
@@ -236,24 +239,84 @@ Editor.Panel.extend({
 
                 _onReplaceClick : function(event) {
                     event.stopPropagation();
-                    this.ios && this._replaceIOS();
-                    this.android && this._replaceAndroid();
-                    this.mac && this._replaceMac();
-                    this.windows && this._replaceWindows();
+                    Async.waterfall([
+                        next => {
+                            if (!this.ios) {
+                                next();
+                                return;
+                            }
+                            this._replaceIOS(err => {
+                                if (err) {
+                                    Editor.warn('Replace iOS icon failed!');
+                                } else {
+                                    Editor.log('Replace iOS icon succeed!');
+                                }
+                                next();
+                            });
+                        },
+                        next => {
+                            if (!this.android) {
+                                next();
+                                return;
+                            }
+                            this._replaceAndroid(err => {
+                                if (err) {
+                                    Editor.warn('Replace Android icon failed!');
+                                } else {
+                                    Editor.log('Replace Android icon succeed!');
+                                }
+                                next();
+                            });
+                        },
+                        next => {
+                            this.mac && this._replaceMac();
+                            this.windows && this._replaceWindows();
+                            next();
+                        }
+                    ], err => {
+                        if (err) {
+                            Editor.warn(`Error occurred: ${err.stack}`);
+                        }
+                    });
                 },
 
-                _replaceIOS: function() {
-                    Editor.log('replace ios icon');
+                _replaceIOS: function(cb) {
+                    if (!this._checkFile(this.pngPath, '.png')) {
+                        cb(new Error(`Check ${this.pngPath} failed!`));
+                        return;
+                    }
+
+                    var iconPath = Path.normalize(Path.join(this.projPath, IOSIconsDir));
+                    if (!Fs.existsSync(iconPath) || !Fs.isDirSync(iconPath)) {
+                        var msg = `${iconPath} is not a valid directory.`;
+                        Editor.warn(msg);
+                        cb(new Error(msg));
+                        return;
+                    }
+
+                    Globby(Path.join(iconPath, IOSIconNamePattern), (err, paths) => {
+                        Async.eachSeries(paths, (path, next) => {
+                            this._resizePngToPath(this.pngPath, path, err => {
+                                if (err) {
+                                    Editor.warn(`Replace ${path} failed!`);
+                                }
+                                next();
+                            })
+                        }, err => {
+                            cb(err);
+                        });
+                    });
                 },
 
-                _replaceAndroid: function() {
+                _replaceAndroid: function(cb) {
                     Editor.log('replace android icon');
+                    cb();
                 },
 
                 _replaceMac: function() {
                     var ret = this._replaceByCopy('.icns', this.icnsPath, MacIconPath);
                     if (!ret) {
-                        Editor.warn('Replace Mac icon failed');
+                        Editor.warn('Replace Mac icon failed!');
                     } else {
                         Editor.log('Replace Mac icon succeed!');
                     }
@@ -262,25 +325,33 @@ Editor.Panel.extend({
                 _replaceWindows: function() {
                     var ret = this._replaceByCopy('.ico', this.icoPath, WindowsIconPath);
                     if (!ret) {
-                        Editor.warn('Replace Windows icon failed');
+                        Editor.warn('Replace Windows icon failed!');
                     } else {
                         Editor.log('Replace Windows icon succeed!');
                     }
                 },
 
-                _replaceByCopy: function(ext, srcPath, dstPath) {
-                    if (!srcPath) {
+                _checkFile: function(filePath, ext) {
+                    if (!filePath) {
                         Editor.warn(`Please specify a ${ext} file.`);
                         return false;
                     }
 
-                    if (!Fs.existsSync(srcPath)) {
-                        Editor.warn(`${srcPath} is not existed.`);
+                    if (!Fs.existsSync(filePath)) {
+                        Editor.warn(`${filePath} is not existed.`);
                         return false;
                     }
 
-                    if (Path.extname(srcPath) !== ext) {
-                        Editor.warn(`${srcPath} is not a ${ext} file.`);
+                    if (Path.extname(filePath) !== ext) {
+                        Editor.warn(`${filePath} is not a ${ext} file.`);
+                        return false;
+                    }
+
+                    return true;
+                },
+
+                _replaceByCopy: function(ext, srcPath, dstPath) {
+                    if (!this._checkFile(srcPath, ext)) {
                         return false;
                     }
 
@@ -295,8 +366,56 @@ Editor.Panel.extend({
                     return true;
                 },
 
-                _resizePngToPath: function(srcPng, dstPng, resize) {
+                _resizePngToPath: function(srcPng, dstPng, cb) {
+                    var dstSize = 0;
+                    Async.waterfall([
+                        next => {
+                            // get the size of dst png
+                            Sharp(dstPng)
+                                .metadata((err, data) => {
+                                    if (err) {
+                                        Editor.warn(`Get the image size of ${dstPng} failed!`);
+                                        next(err);
+                                        return;
+                                    }
 
+                                    if (data.width !== data.height) {
+                                        Editor.warn(`The width(${data.width}) of ${dstPng} is not equal with the height(${data.height}).`);
+                                    }
+                                    dstSize = Math.max(data.width, data.height);
+                                    next();
+                                });
+                        },
+                        next => {
+                            var img = Sharp(srcPng);
+                            img.metadata((err, data) => {
+                                if (err) {
+                                    Editor.warn(`Get the image size of ${srcPng} failed!`);
+                                    next(err);
+                                    return;
+                                }
+
+                                if (data.width !== data.height) {
+                                    Editor.warn(`The width(${data.width}) of ${srcPng} is not equal with the height(${data.height}).`);
+                                }
+                                var srcSize = Math.max(data.width, data.height);
+                                if (srcSize < dstSize) {
+                                    Editor.warn(`${srcPng} size(${srcSize}) is smaller than ${dstPng} size(${dstSize}).`);
+                                }
+
+                                img.resize(dstSize, dstSize)
+                                    .toFormat(Sharp.format.png)
+                                    .toFile(dstPng, (err, info) => {
+                                        if (err) {
+                                            Editor.warn(`Replace ${dstPng} failed. Message : ${err.stack}`);
+                                        }
+                                        next(err);
+                                    });
+                            });
+                        }
+                    ], err => {
+                        cb(err);
+                    });
                 }
             }
         });
