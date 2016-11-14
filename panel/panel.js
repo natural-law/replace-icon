@@ -14,12 +14,12 @@ const IOSIconNamePattern = 'Icon-*.png';
 const AndroidProjectInfo = [
     {
         resDir: 'frameworks/runtime-src/proj.android/res',
-        iconFolderPattern: 'drawable.*',
+        iconFolderPattern: 'drawable*',
         iconName: 'icon.png'
     },
     {
         resDir: 'frameworks/runtime-src/proj.android-studio/app/res',
-        iconFolderPattern: 'mipmap.*',
+        iconFolderPattern: 'mipmap*',
         iconName: 'ic_launcher.png'
     }
 ];
@@ -301,7 +301,7 @@ Editor.Panel.extend({
                                     Editor.warn(`Replace ${path} failed!`);
                                 }
                                 next();
-                            })
+                            });
                         }, err => {
                             cb(err);
                         });
@@ -309,8 +309,36 @@ Editor.Panel.extend({
                 },
 
                 _replaceAndroid: function(cb) {
-                    Editor.log('replace android icon');
-                    cb();
+                    if (!this._checkFile(this.pngPath, '.png')) {
+                        cb(new Error(`Check ${this.pngPath} failed!`));
+                        return;
+                    }
+
+                    Async.eachSeries(AndroidProjectInfo, (info, next) => {
+                        var iconPath = Path.normalize(Path.join(this.projPath, info.resDir));
+                        if (!Fs.existsSync(iconPath) || !Fs.isDirSync(iconPath)) {
+                            var msg = `${iconPath} is not a valid directory.`;
+                            Editor.warn(msg);
+                            next();
+                            return;
+                        }
+
+                        var pattern = Path.join(iconPath, info.iconFolderPattern, info.iconName);
+                        Globby(pattern, (err, paths) => {
+                            Async.eachSeries(paths, (path, done) => {
+                                this._resizePngToPath(this.pngPath, path, err => {
+                                    if (err) {
+                                        Editor.warn(`Replace ${path} failed!`);
+                                    }
+                                    done();
+                                });
+                            }, err => {
+                                next(err);
+                            });
+                        });
+                    }, err => {
+                        cb(err);
+                    });
                 },
 
                 _replaceMac: function() {
