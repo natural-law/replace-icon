@@ -48,7 +48,7 @@ Editor.Panel.extend({
 
     template: `
     <section>
-        <ui-prop name="Project Name">
+        <ui-prop name="${Editor.T('replace-icons.projProp')}">
             <ui-select class="flex-1" v-value="projPath">
                 <template v-for="item in projNames">
                     <option v-bind:value="item.value">{{item.text}}</option>
@@ -56,7 +56,7 @@ Editor.Panel.extend({
             </ui-select>
         </ui-prop>
 
-        <ui-prop name="Platforms" auto-height>
+        <ui-prop name="${Editor.T('replace-icons.platforms')}" auto-height>
             <div class="flex-1 layout horizontal">
                 <ui-checkbox class="item" v-value="ios">
                     iOS
@@ -73,7 +73,7 @@ Editor.Panel.extend({
             </div>
         </ui-prop>
 
-        <ui-prop name=".png File Path"
+        <ui-prop name="${Editor.T('replace-icons.pngPath')}"
                  v-disabled="!ios && !android"
                  tooltip="Select a png file as the new icon.">
             <div class="layout horizontal content flex-1">
@@ -91,7 +91,7 @@ Editor.Panel.extend({
             </div>
         </ui-prop>
 
-        <ui-prop name=".icns File Path"
+        <ui-prop name="${Editor.T('replace-icons.icnsPath')}"
                  v-disabled="!mac"
                  tooltip="Select a icns file as the Mac App icon.">
             <div class="layout horizontal content flex-1">
@@ -109,7 +109,7 @@ Editor.Panel.extend({
             </div>
         </ui-prop>
 
-        <ui-prop name=".ico File Path"
+        <ui-prop name="${Editor.T('replace-icons.icoPath')}"
                  v-disabled="!windows"
                  tooltip="Select a ico file as the Windows App icon.">
             <div class="layout horizontal content flex-1">
@@ -134,7 +134,7 @@ Editor.Panel.extend({
             v-disabled="(!ios && !android && !mac && !windows) || !projPath"
             v-on:confirm="_onReplaceClick"
         >
-            Replace
+            ${Editor.T('replace-icons.replace')}
         </ui-button>
     </footer>
     `,
