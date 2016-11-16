@@ -6,8 +6,7 @@
   "main": "main.js",
   "main-menu": {
     "i18n:MAIN_MENU.project.title/i18n:replace-icons.title": {
-      "message": "replace-icons:open",
-      "accelerator": "CmdOrCtrl+Shift+i"
+      "message": "replace-icons:open"
     }
   },
   "panel": {
