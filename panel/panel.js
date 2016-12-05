@@ -3,7 +3,6 @@
 const Fs = require('fire-fs');
 const Path = require('path');
 const Electron = require('electron');
-const Sharp = require('sharp');
 const Async = require('async');
 const Globby = require('globby');
 
@@ -396,6 +395,13 @@ Editor.Panel.extend({
 
                 _resizePngToPath: function(srcPng, dstPng, cb) {
                     var dstSize = 0;
+                    var sharpPath;
+                    if (Editor.dev) {
+                        sharpPath = 'sharp';
+                    } else {
+                        sharpPath = Editor.url('unpack://utils/sharp');
+                    }
+                    const Sharp = require(sharpPath);
                     Async.waterfall([
                         next => {
                             // get the size of dst png
