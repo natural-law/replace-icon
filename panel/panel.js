@@ -280,8 +280,11 @@ Editor.Panel.extend({
                 },
 
                 _replaceIOS: function(cb) {
+                    this._trackEvent('iOS begin');
+
                     if (!this._checkFile(this.pngPath, '.png')) {
                         cb(new Error(`Check ${this.pngPath} failed!`));
+                        this._trackEvent('iOS error1');
                         return;
                     }
 
@@ -290,6 +293,7 @@ Editor.Panel.extend({
                         var msg = `${iconPath} is not a valid directory.`;
                         Editor.warn(msg);
                         cb(new Error(msg));
+                        this._trackEvent('iOS error2');
                         return;
                     }
 
@@ -303,13 +307,20 @@ Editor.Panel.extend({
                             });
                         }, err => {
                             cb(err);
+                            if (!err) {
+                                this._trackEvent('iOS success');
+                            } else {
+                                this._trackEvent('iOS error3');
+                            }
                         });
                     });
                 },
 
                 _replaceAndroid: function(cb) {
+                    this._trackEvent('Android begin');
                     if (!this._checkFile(this.pngPath, '.png')) {
                         cb(new Error(`Check ${this.pngPath} failed!`));
+                        this._trackEvent('Android error1');
                         return;
                     }
 
@@ -337,24 +348,35 @@ Editor.Panel.extend({
                         });
                     }, err => {
                         cb(err);
+                        if (err) {
+                            this._trackEvent('Android error2');
+                        } else {
+                            this._trackEvent('Android success');
+                        }
                     });
                 },
 
                 _replaceMac: function() {
+                    this._trackEvent('Mac begin');
                     var ret = this._replaceByCopy('.icns', this.icnsPath, MacIconPath);
                     if (!ret) {
                         Editor.warn('Replace Mac icon failed!');
+                        this._trackEvent('Mac error');
                     } else {
                         Editor.log('Replace Mac icon succeed!');
+                        this._trackEvent('Mac success');
                     }
                 },
 
                 _replaceWindows: function() {
+                    this._trackEvent('Windows begin');
                     var ret = this._replaceByCopy('.ico', this.icoPath, WindowsIconPath);
                     if (!ret) {
                         Editor.warn('Replace Windows icon failed!');
+                        this._trackEvent('Windows error');
                     } else {
                         Editor.log('Replace Windows icon succeed!');
+                        this._trackEvent('Windows success');
                     }
                 },
 
@@ -449,6 +471,14 @@ Editor.Panel.extend({
                         }
                     ], err => {
                         cb(err);
+                    });
+                },
+
+                _trackEvent: function(action) {
+                    Editor.Ipc.sendToMain('metrics:track-event', {
+                        category: 'Packages',
+                        label: 'replace-icons',
+                        action: action
                     });
                 }
             }
