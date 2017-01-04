@@ -17,5 +17,11 @@
     "min-width": 500,
     "height": 220,
     "min-height": 220
+  },
+  "reload": {
+    "ignore": [
+      "**/*.md",
+      "docs/*.*"
+    ]
   }
 }
