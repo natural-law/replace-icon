@@ -1,6 +1,6 @@
 {
   "name": "replace-icons",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Replace the icons of the native projects.",
   "author": "lengaoxin@gmail.com",
   "main": "main.js",

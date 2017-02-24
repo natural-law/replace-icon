@@ -495,6 +495,10 @@ Editor.Panel.extend({
             }
 
             var buildPath = profile.data.buildPath;
+            if (!Path.isAbsolute(buildPath)) {
+                buildPath = Path.join(Editor.projectInfo.path, buildPath);
+            }
+            buildPath = Path.normalize(buildPath);
             var ret = [];
             if (!Fs.existsSync(buildPath) || !Fs.isDirSync(buildPath)) {
                 Editor.error(`Build Path ${buildPath} is invalid. Please Build the project first.`);
